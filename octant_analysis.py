@@ -39,7 +39,7 @@ def main():
     # Button to use the sample input file for processing
     sampleClicked = 0
     mod_value = st.number_input(
-        "Enter the Mod Value for sample input if you wanna use", value=5000)
+        "Enter the Mod Value for sample input: ", value=5000)
     if st.button("Use Sample Input for Processing"):
         with st.spinner(f"Processing Sample input for mod = {mod_value}"):
             sample_input_url = "https://raw.githubusercontent.com/Rajan-CE46/moneyChanger/main/octant_input.csv"
