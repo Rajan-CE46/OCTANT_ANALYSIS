@@ -11,9 +11,11 @@ from data_processing import process_data
 
 
 def main():
-    st.title("Octant Analysis")
+    st.set_page_config(layout="wide")  # Set layout to wide
+    st.title("Octant Analysis of particle moving in 3D Space ")
 
-    st.write("This app provides insights into octant analysis.")
+    st.write("This web application for octant analysis, facilitates the analysis of particle trajectories in three-dimensional space. The application preprocesses input data containing time-series data and particle coordinates assigns octant IDs based on coordinate signs.")
+    st.write("It provides insights into particle behavior, including total counts, predominant octants, transition counts, and longest durations in each octant. Users can upload data files, specify mod values, and visualize octant analysis results in real-time.")
 
     # Description of the processing tool
     st.header("Processing Tool Description")
