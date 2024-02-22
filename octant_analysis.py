@@ -4,7 +4,10 @@ from data_processing import process_data
 from datetime import datetime
 from io import BytesIO
 import base64
-import gdown
+import requests
+from urllib.parse import urlparse
+import zipfile
+from data_processing import process_data
 
 
 def main():
@@ -29,82 +32,112 @@ def main():
     # Link to download a sample input file
     st.header("Sample Input File")
     st.write("""
-    You can download a sample input file from the following link:
-    [Download Sample Input File](https://drive.google.com/uc?id=1lqgbOsF8Wt3vBAaVOsNSiu532fsxBlGN)
+    You can view and download a sample input file from the following link:
+    [Download Sample Input File](https://drive.google.com/file/d/1lqgbOsF8Wt3vBAaVOsNSiu532fsxBlGN/view?usp=sharing)
     """)
 
     # Button to use the sample input file for processing
+    sampleClicked = 0
+    mod_value = st.number_input(
+        "Enter the Mod Value for sample input if you wanna use", value=5000)
     if st.button("Use Sample Input for Processing"):
-        # Load the sample input file
-        # Update with the actual file path or URL
-        file_id = "1lqgbOsF8Wt3vBAaVOsNSiu532fsxBlGN"
-        output_path = "octant_input.csv"
+        with st.spinner(f"Processing Sample input for mod = {mod_value}"):
+            sample_input_url = "https://raw.githubusercontent.com/Rajan-CE46/moneyChanger/main/octant_input.csv"
+            sample_input_df = load_csv_from_url(sample_input_url)
+            # Perform data processing with the sample input file
+            processed_df = process_data(sample_input_df, mod_value)
+            st.write(processed_df)
+            download_processed_data(processed_df)
 
-        # Download the file from Google Drive
-        gdown.download(
-            f"https://drive.google.com/uc?id={file_id}", output_path, quiet=False)
+    if (sampleClicked == 0):
+        # File uploader for user data
+        st.header("Upload Your Data")
+        uploaded_files = st.file_uploader("Upload Data File (CSV or Excel)", type=[
+            "csv", "xlsx"], accept_multiple_files=True)
 
-        # Read the downloaded file into a DataFrame
-        df = pd.read_csv(output_path)
+        if uploaded_files:
+            all_files_data = []
 
-        # Perform data processing with the sample input file
-        mod_value = st.number_input("Enter the Mod Value", value=5000)
-        processed_df = process_data(df, mod_value)
+            for idx, uploaded_file in enumerate(uploaded_files):
+                mod_value_file = st.number_input(
+                    f"Enter the Mod Value for File {idx+1}", value=5000, key=f"mod_value_{idx}")
+                all_files_data.append((uploaded_file, mod_value_file))
+            # Submit button for processing uploaded files
+            if st.button("Submit"):
+                processed_files = []
+                for idx, (uploaded_file, mod_value_file) in enumerate(all_files_data):
+                    with st.spinner(f"Processing {uploaded_file.name}..."):
+                        # Load the uploaded file
+                        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(
+                            'csv') else pd.read_excel(uploaded_file)
 
-        # Display the processed data
-        st.header("Processed Data")
-        st.write(processed_df)
+                        processed_df = process_data(df, mod_value_file)
+                        st.write(processed_df)
+                        download_processed_data(processed_df)
+                        processed_files.append(processed_df)
 
-        # Download the processed data as CSV
-        csv_data = processed_df.to_csv(index=False).encode()
-        csv_filename = f"processed_data_{datetime.now()}.csv"
-        st.markdown(get_download_link(csv_data, csv_filename,
-                    "Download Processed Data as CSV"), unsafe_allow_html=True)
+                # Create a ZIP archive of processed files
+                zip_data = create_zip_archive(processed_files)
+                st.markdown(get_download_link(zip_data, "processed_data.zip",
+                            "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
 
-        # Download the processed data as Excel
-        excel_data = BytesIO()
-        with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
-            processed_df.to_excel(writer, index=False)
-        excel_filename = f"processed_data_{datetime.now()}.xlsx"
-        st.markdown(get_download_link(excel_data.getvalue(), excel_filename,
-                    "Download Processed Data as Excel"), unsafe_allow_html=True)
+                # Create a ZIP archive of processed CSV files
+                zip_csv_data = create_csv_zip_archive(processed_files)
+                st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
+                            "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
 
-    # File uploader for user data
-    st.header("Upload Your Data")
-    uploaded_file = st.file_uploader(
-        "Upload Data File (CSV or Excel)", type=["csv", "xlsx"])
 
-    if uploaded_file:
-        # Load the uploaded file
-        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(
-            'csv') else pd.read_excel(uploaded_file)
+def load_csv_from_url(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        df = pd.read_csv(BytesIO(response.content))
+        return df
+    else:
+        st.error(f"Failed to load CSV from URL: {url}")
+        return None
 
-        # Perform data processing
-        mod_value = st.number_input("Enter the Mod Value", value=5000)
-        processed_df = process_data(df, mod_value)
 
-        # Display the processed data
-        st.header("Processed Data")
-        st.write(processed_df)
+def download_processed_data(processed_df, idx=None):
+    # Download the processed data as CSV
+    csv_data = processed_df.to_csv(index=False).encode()
+    filename = f"processed_data_{idx if idx is not None else datetime.now()}.csv"
+    st.markdown(get_download_link(csv_data, filename,
+                f"Download Processed Data {'' if idx is None else f'for File {idx+1}'} as CSV"), unsafe_allow_html=True)
 
-        # Download the processed data as CSV
-        csv_data = processed_df.to_csv(index=False).encode()
-        csv_filename = f"processed_data_{datetime.now()}.csv"
-        st.markdown(get_download_link(csv_data, csv_filename,
-                    "Download Processed Data as CSV"), unsafe_allow_html=True)
+    # Download the processed data as Excel
+    excel_data = BytesIO()
+    with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
+        processed_df.to_excel(writer, index=False)
+    filename = f"processed_data_{idx if idx is not None else datetime.now()}.xlsx"
+    st.markdown(get_download_link(excel_data.getvalue(), filename,
+                f"Download Processed Data {'' if idx is None else f'for File {idx+1}'} as Excel"), unsafe_allow_html=True)
 
-        # Download the processed data as Excel
-        excel_data = BytesIO()
-        with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
-            processed_df.to_excel(writer, index=False)
-        excel_filename = f"processed_data_{datetime.now()}.xlsx"
-        st.markdown(get_download_link(excel_data.getvalue(), excel_filename,
-                    "Download Processed Data as Excel"), unsafe_allow_html=True)
+
+def create_zip_archive(processed_files):
+    zip_data = BytesIO()
+    with zipfile.ZipFile(zip_data, mode='w') as zip_file:
+        for idx, processed_df in enumerate(processed_files):
+            excel_data = BytesIO()
+            with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
+                processed_df.to_excel(writer, index=False)
+            filename = f"processed_data_{idx if idx is not None else datetime.now()}.xlsx"
+            zip_file.writestr(filename, excel_data.getvalue())
+    return zip_data.getvalue()
+
+
+def create_csv_zip_archive(processed_files):
+    zip_data = BytesIO()
+    with zipfile.ZipFile(zip_data, mode='w') as zip_file:
+        for idx, processed_df in enumerate(processed_files):
+            csv_data = processed_df.to_csv(index=False).encode()
+            filename = f"processed_data_{idx if idx is not None else datetime.now()}.csv"
+            zip_file.writestr(filename, csv_data)
+    return zip_data.getvalue()
 
 
 def get_download_link(data, filename, text):
     b64 = base64.b64encode(data).decode()
-    return f'<a href="data:file/csv;base64,{b64}" download="{filename}">{text}</a>'
+    return f'<a href="data:application/zip;base64,{b64}" download="{filename}">{text}</a>'
 
 
 if __name__ == "__main__":
