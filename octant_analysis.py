@@ -11,7 +11,8 @@ from data_processing import process_data
 
 
 def main():
-    st.set_page_config(layout="wide")  # Set layout to wide
+    st.set_page_config(
+        page_title="Octant Analysis-Trace trajectorie", layout="wide", page_icon=":bulb:")
     st.title("Octant Analysis of particle moving in 3D Space ")
 
     st.write("This web application for octant analysis, facilitates the analysis of particle trajectories in three-dimensional space. The application preprocesses input data containing time-series data and particle coordinates assigns octant IDs based on coordinate signs.")
