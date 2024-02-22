@@ -75,19 +75,21 @@ def main():
                             'csv') else pd.read_excel(uploaded_file)
 
                         processed_df = process_data(df, mod_value_file)
+                        st.write(f'result for {uploaded_file.name}')
                         st.write(processed_df)
                         download_processed_data(processed_df)
                         processed_files.append(processed_df)
 
                 # Create a ZIP archive of processed files
-                zip_data = create_zip_archive(processed_files)
-                st.markdown(get_download_link(zip_data, "processed_data.zip",
-                            "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
-
-                # Create a ZIP archive of processed CSV files
-                zip_csv_data = create_csv_zip_archive(processed_files)
-                st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
-                            "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
+                if (len(all_files_data) > 1):
+                    zip_data = create_zip_archive(processed_files)
+                    st.markdown(get_download_link(zip_data, "processed_data.zip",
+                                "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
+                if (len(all_files_data) > 1):
+                    # Create a ZIP archive of processed CSV files
+                    zip_csv_data = create_csv_zip_archive(processed_files)
+                    st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
+                                "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
 
 
 def load_csv_from_url(url):
@@ -101,18 +103,16 @@ def load_csv_from_url(url):
 
 
 def download_processed_data(processed_df, idx=None):
-    # Download the processed data as CSV
     csv_data = processed_df.to_csv(index=False).encode()
     filename = f"processed_data_{idx if idx is not None else datetime.now()}.csv"
     st.markdown(get_download_link(csv_data, filename,
                 f"Download Processed Data {'' if idx is None else f'for File {idx+1}'} as CSV"), unsafe_allow_html=True)
 
-    # Download the processed data as Excel
-    excel_data = BytesIO()
-    with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
-        processed_df.to_excel(writer, index=False)
+    excel_data_buffer = BytesIO()
+    processed_df.to_excel(excel_data_buffer, index=False)
+    excel_data = excel_data_buffer.getvalue()
     filename = f"processed_data_{idx if idx is not None else datetime.now()}.xlsx"
-    st.markdown(get_download_link(excel_data.getvalue(), filename,
+    st.markdown(get_download_link(excel_data, filename,
                 f"Download Processed Data {'' if idx is None else f'for File {idx+1}'} as Excel"), unsafe_allow_html=True)
 
 
