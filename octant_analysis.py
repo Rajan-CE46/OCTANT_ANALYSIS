@@ -84,11 +84,11 @@ def main():
                 # Create a ZIP archive of processed CSV files
                 zip_csv_data = create_csv_zip_archive(processed_files)
                 st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
-                            "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
+                            "Download All Processed CSV files as ZIP"), unsafe_allow_html=True)
                
                 zip_data = create_zip_archive(processed_files)
                 st.markdown(get_download_link(zip_data, "processed_data.zip",
-                            "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
+                            "Download All Processed Excel files as ZIP"), unsafe_allow_html=True)
 
                 # if (st.button("Zip all result as CSV")):
                 #     print("x val :")
