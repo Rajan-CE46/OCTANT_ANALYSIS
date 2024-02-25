@@ -40,7 +40,7 @@ def main():
     """)
 
     # Button to use the sample input file for processing
-    sampleClicked = 0
+
     mod_value = st.number_input(
         "Enter the Mod Value for sample input: ", value=5000)
     if st.button("Use Sample Input for Processing"):
@@ -52,44 +52,50 @@ def main():
             st.write(processed_df)
             download_processed_data(processed_df)
 
-    if (sampleClicked == 0):
-        # File uploader for user data
-        st.header("Upload Your Data")
-        uploaded_files = st.file_uploader("Upload Data File (CSV or Excel)", type=[
-            "csv", "xlsx"], accept_multiple_files=True)
+    # File uploader for user data
+    st.header("Upload Your Data")
+    uploaded_files = st.file_uploader("Upload Data File (CSV or Excel)", type=[
+        "csv", "xlsx"], accept_multiple_files=True)
 
-        if uploaded_files:
-            all_files_data = []
+    if uploaded_files:
+        all_files_data = []
 
-            for idx, uploaded_file in enumerate(uploaded_files):
-                mod_value_file = st.number_input(
-                    f"Enter the Mod Value for File {idx+1}", value=5000, key=f"mod_value_{idx}")
-                all_files_data.append((uploaded_file, mod_value_file))
-            # Submit button for processing uploaded files
-            if st.button("Submit"):
-                processed_files = []
-                for idx, (uploaded_file, mod_value_file) in enumerate(all_files_data):
-                    with st.spinner(f"Processing {uploaded_file.name}..."):
-                        # Load the uploaded file
-                        df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(
-                            'csv') else pd.read_excel(uploaded_file)
+        for idx, uploaded_file in enumerate(uploaded_files):
+            mod_value_file = st.number_input(
+                f"Enter the Mod Value for File {idx+1}", value=5000, key=f"mod_value_{idx}")
+            all_files_data.append((uploaded_file, mod_value_file))
+        # Submit button for processing uploaded files
+        if st.button("Submit"):
+            processed_files = []
+            for idx, (uploaded_file, mod_value_file) in enumerate(all_files_data):
+                with st.spinner(f"Processing {uploaded_file.name}..."):
+                    # Load the uploaded file
+                    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith(
+                        'csv') else pd.read_excel(uploaded_file)
 
-                        processed_df = process_data(df, mod_value_file)
-                        st.write(f'result for {uploaded_file.name}')
-                        st.write(processed_df)
-                        download_processed_data(processed_df)
-                        processed_files.append(processed_df)
+                    processed_df = process_data(df, mod_value_file)
+                    st.write(f'result for {uploaded_file.name}')
+                    st.write(processed_df)
+                    download_processed_data(processed_df)
+                    processed_files.append(processed_df)
 
-                # Create a ZIP archive of processed files
-                if (len(all_files_data) > 1):
-                    zip_data = create_zip_archive(processed_files)
-                    st.markdown(get_download_link(zip_data, "processed_data.zip",
-                                "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
-                if (len(all_files_data) > 1):
+            # Create a ZIP archive of processed files
+            if (len(all_files_data) > 1):
+                # Create a ZIP archive of processed CSV files
+                zip_csv_data = create_csv_zip_archive(processed_files)
+                st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
+                            "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
+               
+                zip_data = create_zip_archive(processed_files)
+                st.markdown(get_download_link(zip_data, "processed_data.zip",
+                            "Download All Processed Excel Data as ZIP"), unsafe_allow_html=True)
+
+                # if (st.button("Zip all result as CSV")):
+                #     print("x val :")
                     # Create a ZIP archive of processed CSV files
-                    zip_csv_data = create_csv_zip_archive(processed_files)
-                    st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
-                                "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
+                    # zip_csv_data = create_csv_zip_archive(processed_files)
+                    # st.markdown(get_download_link(zip_csv_data, "processed_data_csv.zip",
+                    #             "Download All Processed CSV Data as ZIP"), unsafe_allow_html=True)
 
 
 def load_csv_from_url(url):
